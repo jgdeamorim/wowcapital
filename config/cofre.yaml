@@ -1,0 +1,15 @@
+mode: internal            # internal | external
+min_sweep_usdt: 100       # valor mínimo para executar sweep
+allocations:
+  safety_pool_pct: 0.10   # opcional: parcela do PnL para pool de segurança
+venues:
+  binance:
+    type: internal
+    route: MAIN_FUNDING   # universal transfer: MAIN_FUNDING, UMFUTURE_MAIN, etc.
+    asset: USDT
+  bybit:
+    type: internal
+    # detalhes a definir (v5 asset transfer)
+  kraken:
+    type: internal
+    # pode exigir consolidação externa

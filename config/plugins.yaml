@@ -1,0 +1,14 @@
+version: 1
+tiers:
+  - id: "1.5L"
+    latency_target_ms: 15
+  - id: "1.6"
+    latency_target_ms: 25
+  - id: "1.6pp-R"
+    latency_target_ms: 15
+cofre_policy_defaults:
+  explosion_threshold_pct: 120
+  sweep_pct: 0.85
+  account_float_min_usd: 300
+  account_float_max_usd: 500
+

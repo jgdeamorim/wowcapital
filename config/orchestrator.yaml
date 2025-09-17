@@ -1,0 +1,19 @@
+version: 1
+manifests_dir: "plugins/manifests"
+examples_dir: "backend/plugins/examples"
+stages: ["pending","sandbox","shadow","active"]
+promotion_gates:
+  - "lint:mypy:ruff:bandit"
+  - "unit_coverage>=0.85"
+  - "backtest_pass"
+  - "latency_p95_ok"
+  - "tca_cost_bps<=budget"
+gates_config:
+  min_sharpe: 0.8
+  max_maxdd: 0.25
+  min_trades: 30
+stage_multipliers:
+  pending: 0.0
+  sandbox: 0.0
+  shadow: 0.1
+  active: 1.0

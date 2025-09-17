@@ -1,0 +1,14 @@
+version: 1
+default:
+  router: "gpt41mini_primary"
+models:
+  gpt41mini_primary:
+    provider: "openai"
+    model: "gpt-4.1-mini"
+    max_tokens: 2048
+    temperature: 0.2
+  local_fallback:
+    provider: "local"
+    model: "llama3.1-8b"
+    max_tokens: 1024
+    temperature: 0.1

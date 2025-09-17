@@ -1,0 +1,20 @@
+version: 1
+exchanges:
+  binance:
+    accounts:
+      acc#1:
+        mode: "spot"
+        api_key: "${BINANCE_API_KEY:-}"
+        api_secret: "${BINANCE_API_SECRET:-}"
+  bybit:
+    accounts:
+      acc#1:
+        category: "spot"
+        api_key: "${BYBIT_API_KEY:-}"
+        api_secret: "${BYBIT_API_SECRET:-}"
+  kraken:
+    accounts:
+      acc#1:
+        api_key: "${KRAKEN_API_KEY:-}"
+        api_secret: "${KRAKEN_API_SECRET:-}"
+

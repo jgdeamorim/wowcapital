@@ -1,0 +1,38 @@
+FROM python:3.11-slim
+
+# Instalar dependências do sistema
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    make \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalar TA-Lib (biblioteca C)
+WORKDIR /tmp
+RUN wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz && \
+    tar -xzf ta-lib-0.4.0-src.tar.gz && \
+    cd ta-lib/ && \
+    ./configure --prefix=/usr && \
+    make && \
+    make install && \
+    cd / && \
+    rm -rf /tmp/ta-lib*
+
+# Definir diretório de trabalho
+WORKDIR /app
+
+# Copiar requirements primeiro (melhor cache)
+COPY requirements-test.txt .
+
+# Instalar dependências Python
+RUN pip install --no-cache-dir -r requirements-test.txt
+
+# Copiar código fonte
+COPY . .
+
+# Definir PYTHONPATH
+ENV PYTHONPATH=/app
+
+# Comando padrão
+CMD ["python3", "tests/integration_test_priority_1.py"]

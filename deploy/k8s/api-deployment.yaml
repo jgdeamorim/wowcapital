@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wow-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wow-api
+  template:
+    metadata:
+      labels:
+        app: wow-api
+    spec:
+      containers:
+        - name: api
+          image: wowcapital/api:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: wow-config
+            - secretRef:
+                name: wow-secrets
+          env:
+            - name: INSTRUMENTS_FILE
+              value: "/app/backend/config/instruments.yaml"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: audit
+              mountPath: /app/var/audit
+            - name: cofre
+              mountPath: /app/var/cofre
+          args: ["uvicorn","backend.api_gateway.app:app","--host","0.0.0.0","--port","8080"]
+       volumes:
+         - name: audit
+           persistentVolumeClaim:
+             claimName: wow-audit-pvc
+         - name: cofre
+           persistentVolumeClaim:
+             claimName: wow-cofre-pvc

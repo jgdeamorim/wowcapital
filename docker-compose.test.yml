@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: wow-capital-test
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    command: |
+      sh -c "
+        echo '🚀 WOW Capital - Teste de Integração Prioridade 1' &&
+        echo '=============================================' &&
+        python3 tests/integration_test_priority_1.py
+      "
+
+  # Serviço alternativo para teste simples (sem dependências externas)
+  simple-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: wow-capital-simple-test
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    command: |
+      sh -c "
+        echo '🧪 WOW Capital - Teste Simples sem Dependências' &&
+        echo '=============================================' &&
+        python3 tests/simple_integration_test_docker.py
+      "
+
+  # Serviço para desenvolvimento interativo
+  dev-shell:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: wow-capital-dev
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    command: bash
+    stdin_open: true
+    tty: true

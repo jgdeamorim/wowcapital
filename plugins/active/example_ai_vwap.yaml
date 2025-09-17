@@ -1,0 +1,12 @@
+name: example_ai_vwap
+version: "0.1.0"
+author: "wowcapital"
+description: "Active registry pointer to example_ai_vwap strategy."
+entrypoint: "backend/plugins/strategies/example_ai_vwap/strategy.py:Strategy"
+tags: ["lab","template"]
+safety:
+  max_exposure_usd: 500
+  max_leverage: 10
+  allow_live_promotion: false
+parameters: []
+expected_metrics: {}

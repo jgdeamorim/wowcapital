@@ -1,0 +1,41 @@
+metadata:
+  id: "jerico.15L.v1"
+  name: "Jericó 1.5L — Conservador"
+  version: "1.0.0"
+  tier: "1.5L"
+runtime:
+  aggressiveness: "1.5L"
+  indicators:
+    - ema_fast
+    - ema_slow
+    - rsi
+    - atr
+    - vwap
+    - delta_hat
+    - gamma_hat
+    - vanna_hat
+    - charm_hat
+  symbols:
+    - BTCUSDT
+    - ETHUSDT
+    - SOLUSDT
+    - DOGEUSDT
+risk_controls:
+  max_leverage: 4
+  min_notional_usd: 10
+  max_notional_usd: 5000
+  slippage_cap_bps: 25
+  price_guard_bps: 40
+  funding_cap_bps: 20
+guards:
+  macro_windows:
+    - name: rollover
+      days: [Mon, Tue, Wed, Thu, Fri]
+      start: "23:55"
+      end: "00:10"
+cofre_policy:
+  explosion_threshold_pct: 120
+  sweep_pct: 0.80
+  account_float_min_usd: 300
+  account_float_max_usd: 500
+

@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environments
+.env
+.venv/
+venv/
+ENV/
+
+# Logs and caches
+logs/
+*.log
+.pytest_cache/
+coverage/
+htmlcov/
+
+# Editors
+.vscode/
+.idea/
+
+# Local settings
+config/local/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+**/tmp/
+
+# Sensitive configs
+*.secret
+*.key
+secrets/
+
+
+# AI assistant configuration
+.claude/

@@ -1,0 +1,11 @@
+version: 1
+qdrant:
+  url: "http://localhost:6333"
+  api_key: "${QDRANT_API_KEY:-}"
+  collections:
+    docs: "wow_docs"
+    prps: "wow_prps"
+embedder:
+  provider: "openai"
+  model: "text-embedding-3-small"
+

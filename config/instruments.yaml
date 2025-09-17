@@ -1,0 +1,279 @@
+symbols:
+  - symbol: BTCUSDT
+    venues:
+      binance: BTCUSDT
+      bybit: BTCUSDT
+      kraken: XBTUSDT
+    precision:
+      price_dp: 2
+      qty_dp: 6
+    steps:
+      price: 0.01
+      qty: 0.00001
+    min_qty: 0.00001
+    min_notional_usd: 10
+    venues_rules:
+      binance:
+        price_step: 0.01
+        qty_step: 0.00001
+        min_notional_usd: 10
+      bybit:
+        price_step: 0.01
+        qty_step: 0.0001
+        min_notional_usd: 10
+      kraken:
+        price_step: 0.1
+        qty_step: 0.0001
+        min_notional_usd: 10
+
+  - symbol: ETHUSDT
+    venues:
+      binance: ETHUSDT
+      bybit: ETHUSDT
+      kraken: ETHUSDT
+    precision:
+      price_dp: 2
+      qty_dp: 5
+    steps:
+      price: 0.01
+      qty: 0.0001
+    min_qty: 0.0001
+    min_notional_usd: 10
+    venues_rules:
+      binance:
+        price_step: 0.01
+        qty_step: 0.0001
+      bybit:
+        price_step: 0.01
+        qty_step: 0.001
+      kraken:
+        price_step: 0.1
+        qty_step: 0.0001
+
+  - symbol: SOLUSDT
+    venues:
+      binance: SOLUSDT
+      bybit: SOLUSDT
+      kraken: SOLUSDT
+    precision:
+      price_dp: 3
+      qty_dp: 3
+    steps:
+      price: 0.001
+      qty: 0.01
+    min_qty: 0.01
+    min_notional_usd: 5
+    venues_rules:
+      binance:
+        price_step: 0.001
+        qty_step: 0.01
+      bybit:
+        price_step: 0.001
+        qty_step: 0.1
+      kraken:
+        price_step: 0.001
+        qty_step: 0.01
+
+  - symbol: DOGEUSDT
+    venues:
+      binance: DOGEUSDT
+      bybit: DOGEUSDT
+      kraken: DOGEUSDT
+    precision:
+      price_dp: 5
+      qty_dp: 0
+    steps:
+      price: 0.0001
+      qty: 1
+    min_qty: 1
+    min_notional_usd: 5
+    venues_rules:
+      binance:
+        price_step: 0.0001
+        qty_step: 1
+      bybit:
+        price_step: 0.0001
+        qty_step: 1
+      kraken:
+        price_step: 0.0001
+        qty_step: 1
+
+  - symbol: MATICUSDT
+    venues:
+      binance: MATICUSDT
+      bybit: MATICUSDT
+      kraken: MATICUSDT
+    precision:
+      price_dp: 4
+      qty_dp: 2
+    steps:
+      price: 0.0001
+      qty: 0.1
+    min_qty: 0.1
+    min_notional_usd: 5
+    venues_rules:
+      binance: { price_step: 0.0001, qty_step: 0.1 }
+      bybit: { price_step: 0.0001, qty_step: 1 }
+      kraken: { price_step: 0.0001, qty_step: 0.1 }
+
+  - symbol: XRPUSDT
+    venues:
+      binance: XRPUSDT
+      bybit: XRPUSDT
+      kraken: XRPUSDT
+    precision:
+      price_dp: 4
+      qty_dp: 1
+    steps:
+      price: 0.0001
+      qty: 1
+    min_qty: 1
+    min_notional_usd: 5
+    venues_rules:
+      binance: { price_step: 0.0001, qty_step: 1 }
+      bybit: { price_step: 0.0001, qty_step: 1 }
+      kraken: { price_step: 0.0001, qty_step: 1 }
+
+  - symbol: AVAXUSDT
+    venues:
+      binance: AVAXUSDT
+      bybit: AVAXUSDT
+      kraken: AVAXUSDT
+    precision:
+      price_dp: 3
+      qty_dp: 3
+    steps:
+      price: 0.001
+      qty: 0.01
+    min_qty: 0.01
+    min_notional_usd: 5
+    venues_rules:
+      binance: { price_step: 0.001, qty_step: 0.01 }
+      bybit: { price_step: 0.001, qty_step: 0.1 }
+      kraken: { price_step: 0.001, qty_step: 0.01 }
+
+  - symbol: ADAUSDT
+    venues:
+      binance: ADAUSDT
+      bybit: ADAUSDT
+      kraken: ADAUSDT
+    precision:
+      price_dp: 5
+      qty_dp: 0
+    steps:
+      price: 0.0001
+      qty: 1
+    min_qty: 1
+    min_notional_usd: 5
+    venues_rules:
+      binance: { price_step: 0.0001, qty_step: 1 }
+      bybit: { price_step: 0.0001, qty_step: 1 }
+      kraken: { price_step: 0.0001, qty_step: 1 }
+
+  - symbol: SHIBUSDT
+    venues:
+      binance: SHIBUSDT
+      bybit: SHIBUSDT
+      kraken: SHIBUSDT
+    precision:
+      price_dp: 6
+      qty_dp: 0
+    steps:
+      price: 0.000001
+      qty: 1
+    min_qty: 1
+    min_notional_usd: 5
+    venues_rules:
+      binance: { price_step: 0.000001, qty_step: 1 }
+      bybit: { price_step: 0.000001, qty_step: 1 }
+      kraken: { price_step: 0.000001, qty_step: 1 }
+
+  - symbol: BNBUSDT
+    venues:
+      binance: BNBUSDT
+      bybit: BNBUSDT
+      kraken: BNBUSDT
+    precision:
+      price_dp: 2
+      qty_dp: 4
+    steps:
+      price: 0.01
+      qty: 0.001
+    min_qty: 0.001
+    min_notional_usd: 10
+    venues_rules:
+      binance: { price_step: 0.01, qty_step: 0.001 }
+      bybit: { price_step: 0.01, qty_step: 0.01 }
+      kraken: { price_step: 0.1, qty_step: 0.001 }
+
+  - symbol: LTCUSDT
+    venues:
+      binance: LTCUSDT
+      bybit: LTCUSDT
+      kraken: LTCUSDT
+    precision:
+      price_dp: 2
+      qty_dp: 3
+    steps:
+      price: 0.01
+      qty: 0.001
+    min_qty: 0.001
+    min_notional_usd: 10
+    venues_rules:
+      binance: { price_step: 0.01, qty_step: 0.001 }
+      bybit: { price_step: 0.01, qty_step: 0.01 }
+      kraken: { price_step: 0.1, qty_step: 0.001 }
+
+  - symbol: LINKUSDT
+    venues:
+      binance: LINKUSDT
+      bybit: LINKUSDT
+      kraken: LINKUSDT
+    precision:
+      price_dp: 3
+      qty_dp: 2
+    steps:
+      price: 0.001
+      qty: 0.1
+    min_qty: 0.1
+    min_notional_usd: 5
+    venues_rules:
+      binance: { price_step: 0.001, qty_step: 0.1 }
+      bybit: { price_step: 0.001, qty_step: 1 }
+      kraken: { price_step: 0.001, qty_step: 0.1 }
+
+  - symbol: DOTUSDT
+    venues:
+      binance: DOTUSDT
+      bybit: DOTUSDT
+      kraken: DOTUSDT
+    precision:
+      price_dp: 3
+      qty_dp: 2
+    steps:
+      price: 0.001
+      qty: 0.1
+    min_qty: 0.1
+    min_notional_usd: 5
+    venues_rules:
+      binance: { price_step: 0.001, qty_step: 0.1 }
+      bybit: { price_step: 0.001, qty_step: 1 }
+      kraken: { price_step: 0.001, qty_step: 0.1 }
+
+  - symbol: TRXUSDT
+    venues:
+      binance: TRXUSDT
+      bybit: TRXUSDT
+      kraken: TRXUSDT
+    precision:
+      price_dp: 5
+      qty_dp: 0
+    steps:
+      price: 0.0001
+      qty: 1
+    min_qty: 1
+    min_notional_usd: 5
+    venues_rules:
+      binance: { price_step: 0.0001, qty_step: 1 }
+      bybit: { price_step: 0.0001, qty_step: 1 }
+      kraken: { price_step: 0.0001, qty_step: 1 }

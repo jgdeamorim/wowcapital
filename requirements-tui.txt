@@ -1,0 +1,17 @@
+# WOW Capital - TUI Requirements
+# Dependências específicas para a interface TUI operacional
+
+# Core TUI framework
+textual>=0.38.0
+rich>=13.5.0
+
+# Data processing (already in main requirements)
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Optional: Enhanced terminal features
+click>=8.0.0
+colorama>=0.4.6
+
+# Development/Debug
+textual-dev>=1.0.0  # For textual console command

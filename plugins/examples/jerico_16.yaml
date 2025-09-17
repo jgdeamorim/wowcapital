@@ -1,0 +1,43 @@
+metadata:
+  id: "jerico.16.v1"
+  name: "Jericó 1.6 — Equilíbrio Agressivo"
+  version: "1.0.0"
+  tier: "1.6"
+runtime:
+  aggressiveness: "1.6"
+  indicators:
+    - ema_fast
+    - ema_slow
+    - rsi
+    - atr
+    - vwap
+    - delta_hat
+    - gamma_hat
+    - vanna_hat
+    - charm_hat
+  symbols:
+    - BTCUSDT
+    - ETHUSDT
+    - SOLUSDT
+    - DOGEUSDT
+    - MATICUSDT
+    - XRPUSDT
+risk_controls:
+  max_leverage: 10
+  min_notional_usd: 10
+  max_notional_usd: 10000
+  slippage_cap_bps: 40
+  price_guard_bps: 80
+  funding_cap_bps: 25
+guards:
+  macro_windows:
+    - name: news_high_impact
+      days: [Mon, Tue, Wed, Thu, Fri]
+      start: "13:25"
+      end: "13:35"
+cofre_policy:
+  explosion_threshold_pct: 130
+  sweep_pct: 0.85
+  account_float_min_usd: 300
+  account_float_max_usd: 500
+

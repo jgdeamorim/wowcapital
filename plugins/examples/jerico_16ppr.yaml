@@ -1,0 +1,44 @@
+metadata:
+  id: "jerico.16ppr.v1"
+  name: "Jericó 1.6pp‑R — Pós‑Stress, Explosões Controladas"
+  version: "1.0.0"
+  tier: "1.6pp-R"
+runtime:
+  aggressiveness: "1.6pp-R"
+  indicators:
+    - ema_fast
+    - ema_slow
+    - rsi
+    - atr
+    - vwap
+    - delta_hat
+    - gamma_hat
+    - vanna_hat
+    - charm_hat
+  symbols:
+    - BTCUSDT
+    - ETHUSDT
+    - SOLUSDT
+    - DOGEUSDT
+    - MATICUSDT
+    - XRPUSDT
+    - AVAXUSDT
+risk_controls:
+  max_leverage: 15
+  min_notional_usd: 10
+  max_notional_usd: 15000
+  slippage_cap_bps: 60
+  price_guard_bps: 120
+  funding_cap_bps: 30
+guards:
+  macro_windows:
+    - name: vol_of_vol_high
+      days: [Mon, Tue, Wed, Thu, Fri]
+      start: "00:00"
+      end: "00:00"
+cofre_policy:
+  explosion_threshold_pct: 150
+  sweep_pct: 0.90
+  account_float_min_usd: 300
+  account_float_max_usd: 500
+
