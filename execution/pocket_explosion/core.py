@@ -22,11 +22,19 @@ from dataclasses import dataclass, field
 from enum import Enum
 import logging
 
-# Core imports
-from backend.core.contracts import MarketSnapshot, OrderRequest
-from backend.indicators.composite.high_aggression_score import (
-    HighAggressionScore, MarketSignals, AggressionResult
-)
+# Core imports (allow running inside repo or packaged as backend)
+try:
+    from backend.core.contracts import MarketSnapshot, OrderRequest  # type: ignore
+    from backend.indicators.composite.high_aggression_score import (
+        HighAggressionScore, MarketSignals, AggressionResult,
+    )  # type: ignore
+except ImportError:  # pragma: no cover - local fallback
+    from core.contracts import MarketSnapshot, OrderRequest
+    from indicators.composite.high_aggression_score import (  # type: ignore
+        HighAggressionScore,
+        MarketSignals,
+        AggressionResult,
+    )
 
 
 class PocketStatus(Enum):

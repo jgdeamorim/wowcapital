@@ -2,7 +2,10 @@ from __future__ import annotations
 import asyncio
 import time
 from typing import Optional
-from backend.storage.redis_client import RedisClient
+try:
+    from backend.storage.redis_client import RedisClient  # type: ignore
+except ImportError:  # pragma: no cover - local fallback
+    from storage.redis_client import RedisClient  # type: ignore
 
 
 class RedisRateLimiter:

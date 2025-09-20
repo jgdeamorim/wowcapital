@@ -11,6 +11,7 @@ class Metadata(BaseModel):
 
 
 class RuntimeCfg(BaseModel):
+    entrypoint: Optional[str] = None
     aggressiveness: Optional[str] = None
     indicators: Optional[List[str]] = None
     symbols: Optional[List[str]] = None

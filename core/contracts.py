@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 ClassName = Literal["FX","METALS","CRYPTO","CFD","INDEX"]
@@ -32,7 +32,7 @@ class MarketSnapshot(BaseModel):
     ask: float
     mid: float
     spread: float
-    features: Dict[str, float] = Field(default_factory=dict)
+    features: Dict[str, Any] = Field(default_factory=dict)
 
 class StrategyDecision(BaseModel):
     side: Literal["BUY","SELL","FLAT"]
@@ -84,3 +84,17 @@ class Balance(BaseModel):
     free: float
     used: float
     total: float
+
+
+class TradingSignal(BaseModel):
+    """Representa um sinal operacional emitido por uma estratégia."""
+
+    symbol: str
+    side: Literal["BUY", "SELL"]
+    signal_strength: Literal["LOW", "MEDIUM", "HIGH", "weak", "moderate", "strong"] | str
+    confidence: float = 0.0
+    position_pct: float = 0.0
+    entry_price: Optional[float] = None
+    timestamp: Optional[int] = None
+    strategy_name: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)

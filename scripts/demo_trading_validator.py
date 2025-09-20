@@ -20,10 +20,22 @@ import asyncio
 import time
 import json
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Any, Optional
 
-# Add backend to path
-sys.path.insert(0, os.path.dirname(__file__))
+# Add project root to path for direct execution
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+# Provide lightweight alias so imports using "backend.*" resolve when running locally
+if "backend" not in sys.modules:
+    import types
+
+    backend_pkg = types.ModuleType("backend")
+    backend_pkg.__path__ = [str(ROOT_DIR)]  # treat project root as backend package namespace
+    backend_pkg.__file__ = str(ROOT_DIR / "__init__.py")
+    sys.modules["backend"] = backend_pkg
 
 # Import system components
 from exchanges.binance import BinanceAdapter
@@ -50,9 +62,10 @@ class DemoTradingValidator:
             }
         }
 
-        # Demo credentials
-        self.binance_api_key = "ILlTAXZJmqoF9nLc1r84kW3O4pXGYkjvDrH9EiX2omt53MLUmhxqAGaQhOKzk5iJ"
-        self.binance_api_secret = "DENll3oVkSqGs5R3XjnmArXHVJ05LkI8sfPpJkhJpPQNAB1Md7AxGdfptm7mF7Ft"
+        # Credentials (read from environment / .env)
+        self.binance_api_key = os.getenv("BINANCE_API_KEY")
+        self.binance_api_secret = os.getenv("BINANCE_API_SECRET")
+        self.binance_testnet = os.getenv("BINANCE_TESTNET", "0")
 
         # Initialize systems
         self.binance_adapter = None
@@ -82,6 +95,12 @@ class DemoTradingValidator:
         print("\n🔧 Inicializando sistemas...")
 
         try:
+            if not self.binance_api_key or not self.binance_api_secret:
+                msg = "Credenciais da Binance ausentes (BINANCE_API_KEY/BINANCE_API_SECRET)."
+                print(f"   ❌ {msg}")
+                self.validation_summary['critical_failures'].append(msg)
+                return False
+
             # Initialize Binance adapter
             self.binance_adapter = BinanceAdapter(
                 self.tos_config,
@@ -94,6 +113,9 @@ class DemoTradingValidator:
             health_check = await self.binance_adapter.healthcheck()
             if not health_check:
                 raise Exception("Binance health check failed")
+
+            if self.binance_testnet.lower() in {"1", "true", "yes"}:
+                print("   ℹ️  BINANCE_TESTNET ativo — usando endpoints de homologação.")
 
             print("   ✅ Binance adapter initialized and healthy")
 
@@ -109,7 +131,18 @@ class DemoTradingValidator:
         except Exception as e:
             print(f"   ❌ System initialization failed: {str(e)}")
             self.validation_summary['critical_failures'].append(f"System initialization: {str(e)}")
+            await self.shutdown()
             return False
+
+    async def shutdown(self) -> None:
+        """Encerra recursos assíncronos abertos."""
+        if self.binance_adapter is not None:
+            try:
+                await self.binance_adapter.close()
+            except Exception as exc:
+                print(f"   ⚠️ Erro ao encerrar adapter Binance: {exc}")
+            finally:
+                self.binance_adapter = None
 
     async def test_binance_integration(self) -> Dict[str, Any]:
         """Testa integração completa com Binance"""
@@ -122,6 +155,10 @@ class DemoTradingValidator:
             'order_validation': False,
             'error_handling': False
         }
+
+        if not self.binance_adapter:
+            print("   ❌ Adapter Binance não inicializado. Pule este teste.")
+            return test_result
 
         # Test 1: Connectivity
         try:
@@ -572,7 +609,10 @@ class DemoTradingValidator:
 async def main():
     """Função principal"""
     validator = DemoTradingValidator()
-    report = await validator.run_complete_validation()
+    try:
+        report = await validator.run_complete_validation()
+    finally:
+        await validator.shutdown()
 
     # Save report
     report_filename = f"demo_validation_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"

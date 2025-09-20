@@ -31,12 +31,48 @@ class OrchestratorService:
         # load from registry using plugin_id == manifest id
         cls = self.reg.plugins.get(plugin_id)
         if not cls:
+            cls = self._load_entrypoint_from_manifest(plugin_id)
+        if not cls:
             raise KeyError(f"Plugin not found: {plugin_id}")
         self.instances[plugin_id] = cls()
         return self.instances[plugin_id]
 
     def _manifest(self, plugin_id: str):
         return self.pm.loaded.get(plugin_id)
+
+    def _load_entrypoint_from_manifest(self, plugin_id: str):
+        manifest = self._manifest(plugin_id)
+        if not manifest:
+            return None
+        runtime = manifest.runtime if isinstance(manifest.runtime, dict) else {}
+        entry = None
+        if runtime:
+            entry = runtime.get("entrypoint") or runtime.get("entry_point")
+        if not entry and isinstance(manifest.metadata, dict):
+            entry = manifest.metadata.get("entrypoint")
+        if not entry:
+            return None
+        module, _, cls_name = entry.partition(":")
+        if not module or not cls_name:
+            return None
+        try:
+            if module.endswith(".py"):
+                from importlib.util import spec_from_file_location, module_from_spec
+                from pathlib import Path
+                spec = spec_from_file_location("manifest_mod", str(Path(module)))
+                if not spec or not spec.loader:
+                    return None
+                mod = module_from_spec(spec)
+                spec.loader.exec_module(mod)  # type: ignore
+            else:
+                from importlib import import_module
+                mod = import_module(module)
+            obj = getattr(mod, cls_name, None)
+            if obj:
+                self.reg.plugins[plugin_id] = obj
+            return obj
+        except Exception:
+            return None
 
     async def _enrich(self, plugin_id: str, snap: Dict[str, Any]) -> Dict[str, Any]:
         # Copy snapshot

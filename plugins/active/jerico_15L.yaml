@@ -1,0 +1,12 @@
+name: "jerico.15L.v1"
+version: "1.0.0"
+author: "wowcapital"
+description: "Jericó 1.5L strategy (Strategy15L)."
+entrypoint: "plugins.strategies.strategy_1_5l:Strategy15L"
+tags: ["core", "15L"]
+safety:
+  max_exposure_usd: 5000
+  max_leverage: 4
+  allow_live_promotion: false
+parameters: []
+expected_metrics: {}

@@ -2,16 +2,22 @@ from __future__ import annotations
 from typing import Dict, Optional, Callable, Awaitable
 from time import time
 import asyncio
+from contextlib import suppress
 import hmac
 import hashlib
 import aiohttp
 import json
 from urllib.parse import urlencode
-from backend.core.contracts import OrderRequest, OrderAck, Position, Balance
+try:
+    from backend.core.contracts import OrderRequest, OrderAck, Position, Balance  # type: ignore
+    from backend.common.rate_limiter import TokenBucket  # type: ignore
+    from backend.common.ratelimit_redis import RedisRateLimiter  # type: ignore
+except ImportError:  # pragma: no cover - local execution fallback
+    from core.contracts import OrderRequest, OrderAck, Position, Balance
+    from common.rate_limiter import TokenBucket  # type: ignore
+    from common.ratelimit_redis import RedisRateLimiter  # type: ignore
 from .base import ExchangeAdapter
 import os
-from backend.common.rate_limiter import TokenBucket
-from backend.common.ratelimit_redis import RedisRateLimiter
 
 
 class BinanceAdapter(ExchangeAdapter):
@@ -20,10 +26,14 @@ class BinanceAdapter(ExchangeAdapter):
     def __init__(self, tos: Dict, mode: str = "spot", api_key: Optional[str] = None, api_secret: Optional[str] = None):
         self._tos = tos.get("exchanges", {}).get("binance", {})
         self._mode = mode  # "spot" | "futures"
+        use_testnet = os.getenv("BINANCE_TESTNET", "0").lower() in {"1", "true", "yes"}
         if self._mode == "futures":
             self._base = "https://fapi.binance.com"
         else:
             self._base = "https://api.binance.com"
+        if use_testnet:
+            # HTTP testnet para spot
+            self._base = "https://testnet.binance.vision"
         # Lazy credentials: pull from params or env if present; enforce only on signed calls
         self._api_key: Optional[str] = api_key or os.getenv("BINANCE_API_KEY")
         self._api_secret: Optional[str] = api_secret or os.getenv("BINANCE_API_SECRET")
@@ -56,7 +66,10 @@ class BinanceAdapter(ExchangeAdapter):
         path = "/fapi/v1/time" if self._mode == "futures" else "/api/v3/time"
         async with session.get(self._base + path, timeout=5) as r:
             data = await r.json()
-            return int(data["serverTime"])
+            ts = data.get("serverTime")
+            if ts is None:
+                return int(time() * 1000)
+            return int(ts)
 
     def _sign(self, params: Dict[str, str]) -> str:
         if not self._api_secret:
@@ -191,6 +204,22 @@ class BinanceAdapter(ExchangeAdapter):
                     wallet = float(a.get("walletBalance", 0))
                     out[ccy] = Balance(ccy=ccy, free=wallet, used=0.0, total=wallet)
             return out
+
+    async def close(self) -> None:
+        """Fecha sessões HTTP/WebSocket abertas."""
+        if self._keepalive_task:
+            self._keepalive_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await self._keepalive_task
+            self._keepalive_task = None
+        if self._ws_task:
+            self._ws_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await self._ws_task
+            self._ws_task = None
+        if self._session and not self._session.closed:
+            await self._session.close()
+        self._session = None
 
     # --- User Data Stream (fills) ---
     async def start(self) -> None:

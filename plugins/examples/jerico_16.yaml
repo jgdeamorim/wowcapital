@@ -4,6 +4,7 @@ metadata:
   version: "1.0.0"
   tier: "1.6"
 runtime:
+  entrypoint: "plugins.strategies.strategy_1_5l:Strategy15L"
   aggressiveness: "1.6"
   indicators:
     - ema_fast
@@ -40,4 +41,3 @@ cofre_policy:
   sweep_pct: 0.85
   account_float_min_usd: 300
   account_float_max_usd: 500
-

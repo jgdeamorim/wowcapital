@@ -1,0 +1,12 @@
+name: "jerico.16.v1"
+version: "1.0.0"
+author: "wowcapital"
+description: "Jericó 1.6 strategy (Strategy15L placeholder)."
+entrypoint: "plugins.strategies.strategy_1_5l:Strategy15L"
+tags: ["core", "16"]
+safety:
+  max_exposure_usd: 8000
+  max_leverage: 6
+  allow_live_promotion: false
+parameters: []
+expected_metrics: {}

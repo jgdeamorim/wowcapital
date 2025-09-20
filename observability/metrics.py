@@ -51,3 +51,26 @@ WS_RECONNECTS = Counter("ws_reconnects_total", "WS reconnects", ["venue", "kind"
 
 # Micro persistence
 MICRO_PERSIST_TOTAL = Counter("micro_persist_total", "Micro snapshots persisted", ["venue"]) 
+
+# AI orchestration telemetry
+AI_DECISIONS = Counter(
+    "ai_orchestrator_decisions_total",
+    "AI orchestrator decisions emitted",
+    ["plugin", "action"],
+)
+AI_EXECUTIONS = Counter(
+    "ai_orchestrator_execution_total",
+    "AI orchestrator execution outcomes",
+    ["plugin", "status"],
+)
+AI_DECISION_LATENCY = Histogram(
+    "ai_orchestrator_decision_seconds",
+    "Latency of orchestrator decisions",
+    ["plugin"],
+    buckets=[0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0],
+)
+AI_TOOL_CALLS = Counter(
+    "ai_tool_calls_total",
+    "AI tool call invocations",
+    ["tool", "status"],
+)

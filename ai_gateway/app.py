@@ -8,6 +8,7 @@ import hashlib
 import json
 import httpx
 from backend.storage.redis_client import RedisClient
+from backend.observability.metrics import AI_TOOL_CALLS
 from backend.common.auth import require_scopes
 from backend.common.config import load_models
 from backend.common.secure_env import get_secret
@@ -100,6 +101,10 @@ async def ai_orchestrate(body: LLMOrchestrateIn, request: Request, _: None = Dep
         except Exception:
             args = {}
         out["tool_calls"].append({"name": name, "arguments": args})
+        try:
+            AI_TOOL_CALLS.labels(name or "unknown", "suggested").inc()
+        except Exception:
+            pass
     if _redis.enabled() and cache_key and not body.execute:
         await _redis.set_json(cache_key, out, ex=30)
     if body.execute and out["tool_calls"]:
@@ -119,13 +124,25 @@ async def ai_orchestrate(body: LLMOrchestrateIn, request: Request, _: None = Dep
                 et = ExecuteTradeArgs(**(call.get("arguments") or {}))
             except Exception as e:
                 results.append({"status": "error", "error": "validation", "detail": str(e)})
+                try:
+                    AI_TOOL_CALLS.labels(call.get("name") or "unknown", "validation_error").inc()
+                except Exception:
+                    pass
                 continue
             try:
                 ack = await execute_trade(et)
                 results.append({"status": "ok", "ack": ack})
+                try:
+                    AI_TOOL_CALLS.labels(call.get("name") or "unknown", "executed").inc()
+                except Exception:
+                    pass
             except HTTPException:
                 raise
             except Exception as e:
                 results.append({"status": "error", "error": "execution", "detail": str(e)})
+                try:
+                    AI_TOOL_CALLS.labels(call.get("name") or "unknown", "execution_error").inc()
+                except Exception:
+                    pass
         out["executed"] = results
     return out

@@ -12,7 +12,14 @@ from backend.orchestrator.service import OrchestratorService
 from backend.orchestrator.promotion import PromotionManager
 from backend.common.config import load_yaml
 from pathlib import Path
-from backend.observability.metrics import metrics_app, HTTP_REQUESTS, HTTP_LATENCY
+from backend.observability.metrics import (
+    metrics_app,
+    HTTP_REQUESTS,
+    HTTP_LATENCY,
+    AI_DECISIONS,
+    AI_EXECUTIONS,
+    AI_DECISION_LATENCY,
+)
 from backend.audit.worm import AsyncWormLog
 from backend.storage.mongo import MongoStore
 from backend.marketdata.app import md_app
@@ -39,6 +46,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.types import ASGIApp
 import os as _os
+from backend.observability.ai_orchestrator_monitor import (
+    AIObservabilityMonitor,
+    TradingDecision,
+    TradingExecution,
+)
 
 app = FastAPI(title="WOWCAPITAL API Gateway (MVP)")
 pm = PluginManager()
@@ -71,6 +83,7 @@ perf = PerfAggregator(RedisClient(), mongo)
 _md_ws: PublicWS | None = None
 route = PluginRouting(RedisClient())
 _shadow: ShadowRunner | None = None
+ai_monitor = AIObservabilityMonitor()
 
 
 class _SecurityHeaders(BaseHTTPMiddleware):
@@ -495,7 +508,29 @@ async def orchestrator_place(body: DecidePlaceIn, _: None = Depends(require_scop
         pool = [p for p in candidates if p.startswith("jerico.")]
         default = "jerico.16ppr.v1" if "jerico.16ppr.v1" in pool else (pool[0] if pool else candidates[0])
         plugin_id = await route.pick_best(sym, pool or candidates, default)
+
+    def _safe_float(value: Any, default: float = 0.0) -> float:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+    decision_started = time.time()
     decision = orch.decide(plugin_id, snap)
+    decision_latency = max(0.0, time.time() - decision_started)
+    action_label = decision.get("side") or decision.get("action") or "unknown"
+    if not decision or action_label in {"HOLD", "FLAT"}:
+        return OrderAck(
+            client_id="orchestrator",
+            broker_order_id=None,
+            accepted=False,
+            message="NO_ACTION",
+            ts_ns=int(time.time() * 1e9),
+        )
+    try:
+        AI_DECISIONS.labels(plugin_id, action_label).inc()
+        AI_DECISION_LATENCY.labels(plugin_id).observe(decision_latency)
+    except Exception:
+        pass
     order = OrderRequest(**decision)
     await worm.append({"ts_ns": int(time.time()*1e9), "event": "strategy_decision", "payload": decision})
     try:
@@ -509,13 +544,58 @@ async def orchestrator_place(body: DecidePlaceIn, _: None = Depends(require_scop
         await perf.record_decision(plugin_id, order.idempotency_key, symbol=order.symbol, venue=body.venue, score=score, features=features)
     except Exception:
         pass
+    td_obj: TradingDecision | None = None
+    try:
+        decision_meta = decision.get("meta") if isinstance(decision, dict) else {}
+        if not isinstance(decision_meta, dict):
+            decision_meta = {}
+        td_obj = TradingDecision(
+            timestamp=time.time(),
+            symbol=order.symbol,
+            side=action_label,
+            confidence=_safe_float(decision_meta.get("confidence")) if decision_meta else 0.0,
+            reasoning=str(decision_meta.get("reason", "")),
+            market_conditions=snap.get("features", {}) if isinstance(snap, dict) else {},
+            risk_score=_safe_float(decision_meta.get("risk_score")) if decision_meta else 0.0,
+            expected_pnl_pct=_safe_float(decision_meta.get("expected_pnl_pct")) if decision_meta else 0.0,
+            strategy_used=plugin_id,
+            execution_time_ms=decision_latency * 1000.0,
+        )
+        await ai_monitor.log_trading_decision(td_obj)
+    except Exception:
+        td_obj = None
     router.register_intent(order.idempotency_key, order.client_id, account=order.meta.get("account") if isinstance(order.meta, dict) else None)
+    exec_started = time.time()
     ack = await router.place(body.venue, order)
+    exec_latency = max(0.0, time.time() - exec_started)
+    try:
+        status_label = "accepted" if ack.accepted else "rejected"
+        AI_EXECUTIONS.labels(plugin_id, status_label).inc()
+    except Exception:
+        pass
     await worm.append({"ts_ns": int(time.time()*1e9), "event": "order_ack", "payload": ack.model_dump()})
     try:
         await pub.publish("orders.ack", ack.model_dump())
     except Exception:
         pass
+    try:
+        te = TradingExecution(
+            decision_timestamp=td_obj.timestamp if td_obj else decision_started,
+            execution_timestamp=time.time(),
+            symbol=order.symbol,
+            side=order.side,
+            quantity=order.qty,
+            price=_safe_float(order.price) if order.price is not None else 0.0,
+            fees=0.0,
+            success=ack.accepted,
+            error_message=None if ack.accepted else ack.message,
+            latency_ms=exec_latency * 1000.0,
+        )
+        await ai_monitor.log_trading_execution(te)
+    except Exception:
+        pass
+    if mongo.enabled():
+        await mongo.record_ack(ack.model_dump())
     return ack
 
 

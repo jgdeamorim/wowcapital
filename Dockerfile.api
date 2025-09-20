@@ -1,22 +1,26 @@
 FROM python:3.11-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update -y && apt-get install -y --no-install-recommends     build-essential gcc g++ make wget curl ca-certificates     libssl-dev libffi-dev gfortran     libblas-dev liblapack-dev     git pkg-config   && rm -rf /var/lib/apt/lists/*
+
+# Build TA-Lib C
+WORKDIR /tmp
+RUN wget -q https://downloads.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz   && tar -xzf ta-lib-0.4.0-src.tar.gz   && cd ta-lib   && ./configure --prefix=/usr   && make   && make install   && ldconfig   && cd /   && rm -rf /tmp/ta-lib /tmp/ta-lib-0.4.0-src.tar.gz
 
 WORKDIR /app
+COPY requirements.txt /app/requirements.txt
 
-# Instala dependências do sistema mínimas
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel   && pip install --no-cache-dir numpy==1.26.4
 
-COPY backend/requirements.txt /app/backend/requirements.txt
-RUN pip install --no-cache-dir -r /app/backend/requirements.txt
+ENV TA_INCLUDE_PATH=/usr/include/ta-lib     TA_LIBRARY_PATH=/usr/lib     CFLAGS=-Wno-error=incompatible-pointer-types -Wno-error=discarded-qualifiers
+RUN pip install --no-cache-dir --no-binary :all: --no-build-isolation TA-Lib==0.4.26
 
-COPY . /app
+RUN grep -viE ^[[:space:]]*ta-lib[[:space:]]*== /app/requirements.txt > /tmp/requirements.notalib   && pip install --no-cache-dir -r /tmp/requirements.notalib
 
-# Usuário não-root
-RUN useradd -ms /bin/bash appuser && chown -R appuser:appuser /app
-USER appuser
+COPY . /app/backend
+
+WORKDIR /app/backend
+ENV PYTHONPATH=/app
 
 EXPOSE 8080
-
 CMD ["uvicorn", "backend.api_gateway.app:app", "--host", "0.0.0.0", "--port", "8080"]

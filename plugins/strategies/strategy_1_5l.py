@@ -22,9 +22,9 @@ from core.contracts import MarketSnapshot, TradingSignal, Position
 from plugins.strategies.base_strategy import BaseStrategy
 
 # Indicadores proprietários
-from indicators.momentum.momo_1_5l import MOMO_1_5L
+from indicators.momentum.momo_1_5l import MOMO15L, MOMO15LConfig
 from indicators.composite.high_aggression_score import HighAggressionScore
-from execution.pocket_explosion.core import PocketExplosion
+from execution.pocket_explosion.core import PocketExplosionSystem, PocketConfig
 
 # Imports padrão para indicadores técnicos
 try:
@@ -84,13 +84,16 @@ class Strategy15L(BaseStrategy):
         self.config = config or Strategy15LConfig()
 
         # Inicializar indicadores proprietários
-        momo_config = MOMO15LConfig(
+        self.momo_config = MOMO15LConfig(
             lookback=21,
             smooth_factor=0.65,
             boost_limit=1.5,
             normalization_window=50
         )
-        self.momo_1_5l = MOMO15L(momo_config)
+        self.momo_1_5l = MOMO15L(self.momo_config)
+
+        self.pocket_config = PocketConfig()
+        self.pocket_system = PocketExplosionSystem(self.pocket_config)
 
         # Histórico de preços e volumes para cálculos
         self.price_history: List[float] = []
@@ -427,6 +430,7 @@ class Strategy15L(BaseStrategy):
     def _no_action_response(self, reason: str) -> Dict[str, Any]:
         """Resposta quando nenhuma ação é tomada"""
         return {
+            "side": "HOLD",
             "action": "HOLD",
             "reason": reason,
             "meta": {

@@ -13,6 +13,15 @@ import time
 
 md_app = APIRouter()
 _redis = RedisClient()
+_COINGECKO_IDS = {
+    "BTCUSDT": "bitcoin",
+    "ETHUSDT": "ethereum",
+    "SOLUSDT": "solana",
+    "DOGEUSDT": "dogecoin",
+    "MATICUSDT": "matic-network",
+    "XRPUSDT": "ripple",
+    "AVAXUSDT": "avalanche-2",
+}
 
 
 async def _stash_prev_and_set(key: str, value: Dict, ex: int = 1) -> None:
@@ -39,18 +48,67 @@ def _venue_symbol(symbol: str, venue: str) -> str:
     return symbol
 
 
+async def _coingecko_quote(symbol: str) -> Dict:
+    cid = _COINGECKO_IDS.get(symbol)
+    if not cid:
+        raise HTTPException(status_code=502, detail="coingecko fallback unavailable for symbol")
+    async with httpx.AsyncClient(timeout=5) as client:
+        r = await client.get(
+            "https://api.coingecko.com/api/v3/simple/price",
+            params={"ids": cid, "vs_currencies": "usd"},
+        )
+        r.raise_for_status()
+        data = r.json()
+    price = float((data.get(cid) or {}).get("usd", 0.0))
+    if price <= 0.0:
+        raise HTTPException(status_code=502, detail="coingecko invalid price")
+    bid = price * 0.999
+    ask = price * 1.001
+    return {
+        "venue": "binance-fallback",
+        "symbol": symbol,
+        "bid": bid,
+        "ask": ask,
+        "mid": price,
+        "spread": ask - bid,
+    }
+
+
 async def _fetch_quote_binance(symbol: str) -> Dict:
     vsym = _venue_symbol(symbol, "binance")
-    # cache lookup
+    key = f"md:quote:binance:{symbol}"
     if _redis.enabled():
-        key = f"md:quote:binance:{symbol}"
         cached = await _redis.get_json(key)
         if cached:
             return cached
+    base_url = "https://api.binance.com/api/v3/ticker/bookTicker"
+    if os.getenv("BINANCE_TESTNET", "0").lower() in {"1", "true", "yes"}:
+        base_url = "https://testnet.binance.vision/api/v3/ticker/bookTicker"
     async with httpx.AsyncClient(timeout=5) as client:
-        r = await client.get("https://api.binance.com/api/v3/ticker/bookTicker", params={"symbol": vsym})
-        if r.status_code != 200:
-            raise HTTPException(status_code=502, detail=f"binance error: {r.text}")
+        try:
+            r = await client.get(base_url, params={"symbol": vsym})
+            r.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if _redis.enabled():
+                fallback = await _redis.get_json(f"md:last:binance:{symbol}")
+                if fallback:
+                    return fallback
+            try:
+                alt = await _fetch_quote_bybit(symbol)
+                alt["venue"] = "binance-proxy"
+                if _redis.enabled():
+                    await _stash_prev_and_set(key, alt, ex=1)
+                return alt
+            except Exception:
+                try:
+                    alt = await _coingecko_quote(symbol)
+                    if _redis.enabled():
+                        await _stash_prev_and_set(key, alt, ex=5)
+                    return alt
+                except Exception:
+                    raise HTTPException(status_code=502, detail=f"binance error: {exc}")
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=f"binance error: {exc}")
         data = r.json()
         bid = float(data.get("bidPrice", 0))
         ask = float(data.get("askPrice", 0))

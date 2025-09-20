@@ -252,7 +252,7 @@ class IntegrationTester:
                 decisions.append(decision)
 
             # Validações
-            valid_decisions = [d for d in decisions if 'side' in d]
+            valid_decisions = [d for d in decisions if d.get('side') in ['BUY', 'SELL']]
             print(f"   ✅ Decisions Generated: {len(decisions)}")
             print(f"   ✅ Trading Signals: {len(valid_decisions)}")
 
@@ -440,12 +440,15 @@ class IntegrationTester:
             print(f"   ❌ Full Integration Test Failed: {str(e)}")
             return {'passed': False, 'error': str(e)}
 
-    def run_test(self, test_name: str, test_func):
+    async def run_test(self, test_name: str, test_func):
         """Executa um teste e atualiza estatísticas"""
         self.total_tests += 1
 
         try:
-            result = asyncio.run(test_func()) if asyncio.iscoroutinefunction(test_func) else test_func()
+            if asyncio.iscoroutinefunction(test_func):
+                result = await test_func()
+            else:
+                result = test_func()
 
             if result.get('passed', False):
                 self.passed_tests += 1
@@ -478,7 +481,7 @@ class IntegrationTester:
         # Executar testes
         for test_name, test_func in tests:
             print(f"\n{'='*20} {test_name} {'='*20}")
-            self.run_test(test_name, test_func)
+            await self.run_test(test_name, test_func)
 
         # Relatório final
         self.print_final_report()
