@@ -16,7 +16,7 @@ class PublicWS:
         self._stop = asyncio.Event()
         self._tasks: List[asyncio.Task] = []
         # rolling trade buffers per (venue,symbol)
-        self._tr_buf: Dict[str, Dict[str, List[tuple[float,float,int,float]]]] = {"binance": {}, "bybit": {}, "kraken": {}}
+        self._tr_buf: Dict[str, Dict[str, List[tuple[float,float,int,float]]]] = {"binance": {}, "bybit": {}, "kraken": {}, "coinbase": {}}
         self._ins_path = instruments_path or os.getenv("INSTRUMENTS_FILE", "backend/config/instruments.yaml")
         self._mongo = MongoStore()
         self._last_persist: Dict[str, float] = {}
@@ -66,6 +66,8 @@ class PublicWS:
             asyncio.create_task(self._kraken(ins, syms)),
             asyncio.create_task(self._kraken_trades(ins, syms)),
             asyncio.create_task(self._kraken_depth(ins, syms)),
+            asyncio.create_task(self._coinbase_depth(ins, syms)),
+            asyncio.create_task(self._coinbase_trades(ins, syms)),
             asyncio.create_task(self._aggregate_micro(ins, syms)),
         ]
 
@@ -180,7 +182,7 @@ class PublicWS:
     async def _aggregate_micro(self, ins: Dict, syms: List[str]):
         if not syms:
             return
-        venues = ["binance", "bybit", "kraken"]
+        venues = ["binance", "bybit", "kraken", "coinbase"]
         while not self._stop.is_set():
             try:
                 if self._mongo.enabled():
@@ -479,6 +481,124 @@ class PublicWS:
                         from backend.observability.metrics import WS_RECONNECTS, WS_UP
                         WS_RECONNECTS.labels("bybit", "trades").inc()
                         WS_UP.labels("bybit", "trades").set(0)
+                    except Exception:
+                        pass
+
+    async def _coinbase_depth(self, ins: Dict, syms: List[str]):
+        if not syms:
+            return
+        url = "wss://ws-feed.exchange.coinbase.com"
+        # L2 book is per-symbol so we manage one connection per symbol
+        for s in syms:
+            asyncio.create_task(self._coinbase_single_depth(ins, s))
+
+    async def _coinbase_single_depth(self, ins: Dict, sym: str):
+        url = "wss://ws-feed.exchange.coinbase.com"
+        vsym = self._vsym(sym, 'coinbase', ins)
+        backoff = 1.0
+        l2_book = {'bids': {}, 'asks': {}}
+
+        async with aiohttp.ClientSession() as sess:
+            while not self._stop.is_set():
+                try:
+                    async with sess.ws_connect(url, heartbeat=15) as ws:
+                        try:
+                            from backend.observability.metrics import WS_UP
+                            WS_UP.labels("coinbase", "depth").inc()
+                        except Exception:
+                            pass
+                        await ws.send_json({"type": "subscribe", "product_ids": [vsym], "channels": ["level2"]})
+                        backoff = 1.0
+                        async for msg in ws:
+                            if msg.type == aiohttp.WSMsgType.TEXT:
+                                try:
+                                    from backend.observability.metrics import WS_MESSAGES
+                                    WS_MESSAGES.labels("coinbase", "depth").inc()
+                                except Exception:
+                                    pass
+                                data = msg.json()
+                                if isinstance(data, dict):
+                                    mtype = data.get("type")
+                                    if mtype == 'snapshot':
+                                        l2_book['bids'] = {p: q for p, q in data.get('bids', [])}
+                                        l2_book['asks'] = {p: q for p, q in data.get('asks', [])}
+                                    elif mtype == 'l2update':
+                                        for side, price, qty in data.get('changes', []):
+                                            book_side = l2_book['bids'] if side == 'buy' else l2_book['asks']
+                                            if float(qty) == 0:
+                                                book_side.pop(price, None)
+                                            else:
+                                                book_side[price] = qty
+                                    
+                                    # Sort and format for downstream
+                                    bids = sorted([(float(p), float(q)) for p, q in l2_book['bids'].items()], key=lambda x: x[0], reverse=True)
+                                    asks = sorted([(float(p), float(q)) for p, q in l2_book['asks'].items()], key=lambda x: x[0])
+
+                                    if bids and asks:
+                                        await self._update_depth("coinbase", sym, bids, asks)
+                                        bid, bsz = bids[0]
+                                        ask, asz = asks[0]
+                                        await self._stash_set(f"md:quote:coinbase:{sym}", {"venue":"coinbase","symbol":sym,"bid":bid,"ask":ask,"mid":(bid+ask)/2.0,"spread":max(0.0, ask-bid)}, ex=1)
+                                        await self._update_micro("coinbase", sym, bid=bid, ask=ask, bid_sz=bsz, ask_sz=asz)
+
+                            elif msg.type in (aiohttp.WSMsgType.CLOSE, aiohttp.WSMsgType.ERROR):
+                                break
+                except Exception:
+                    await asyncio.sleep(backoff)
+                    backoff = min(backoff * 2, 30.0)
+                    try:
+                        from backend.observability.metrics import WS_RECONNECTS, WS_UP
+                        WS_RECONNECTS.labels("coinbase", "depth").inc()
+                        WS_UP.labels("coinbase", "depth").dec()
+                    except Exception:
+                        pass
+
+    async def _coinbase_trades(self, ins: Dict, syms: List[str]):
+        if not syms:
+            return
+        url = "wss://ws-feed.exchange.coinbase.com"
+        product_ids = [self._vsym(s, 'coinbase', ins) for s in syms]
+        backoff = 1.0
+        async with aiohttp.ClientSession() as sess:
+            while not self._stop.is_set():
+                try:
+                    async with sess.ws_connect(url, heartbeat=15) as ws:
+                        try:
+                            from backend.observability.metrics import WS_UP
+                            WS_UP.labels("coinbase", "trades").set(1)
+                        except Exception:
+                            pass
+                        await ws.send_json({"type": "subscribe", "product_ids": product_ids, "channels": ["matches"]})
+                        backoff = 1.0
+                        async for msg in ws:
+                            if msg.type == aiohttp.WSMsgType.TEXT:
+                                try:
+                                    from backend.observability.metrics import WS_MESSAGES
+                                    WS_MESSAGES.labels("coinbase", "trades").inc()
+                                except Exception:
+                                    pass
+                                data = msg.json()
+                                if isinstance(data, dict) and data.get("type") == "match":
+                                    p = float(data.get("price", 0))
+                                    q = float(data.get("size", 0))
+                                    is_buy = (data.get("side") == "buy")
+                                    vsym = data.get("product_id", "")
+                                    sym = None
+                                    for x in syms:
+                                        if self._vsym(x, 'coinbase', ins).upper() == vsym.upper():
+                                            sym = x
+                                            break
+                                    if sym and p and q:
+                                        self._append_trade("coinbase", sym, p, q, is_buy)
+                            elif msg.type in (aiohttp.WSMsgType.CLOSE, aiohttp.WSMsgType.ERROR):
+                                break
+                except Exception:
+                    await asyncio.sleep(backoff)
+                    backoff = min(backoff * 2, 30.0)
+                    try:
+                        from backend.observability.metrics import WS_RECONNECTS, WS_UP
+                        WS_RECONNECTS.labels("coinbase", "trades").inc()
+                        WS_UP.labels("coinbase", "trades").set(0)
                     except Exception:
                         pass
 

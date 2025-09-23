@@ -1,26 +1,44 @@
-FROM python:3.11-slim
+# ---- Builder Stage ----
+FROM python:3.11 as builder
 
+# Install build dependencies
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y && apt-get install -y --no-install-recommends     build-essential gcc g++ make wget curl ca-certificates     libssl-dev libffi-dev gfortran     libblas-dev liblapack-dev     git pkg-config   && rm -rf /var/lib/apt/lists/*
 
-# Build TA-Lib C
+# Build and install TA-Lib C library
 WORKDIR /tmp
 RUN wget -q https://downloads.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz   && tar -xzf ta-lib-0.4.0-src.tar.gz   && cd ta-lib   && ./configure --prefix=/usr   && make   && make install   && ldconfig   && cd /   && rm -rf /tmp/ta-lib /tmp/ta-lib-0.4.0-src.tar.gz
 
+# Install Python dependencies
 WORKDIR /app
-COPY requirements.txt /app/requirements.txt
-
+COPY requirements.txt .
+# First install TA-Lib wrapper, then the rest
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel   && pip install --no-cache-dir numpy==1.26.4
-
-ENV TA_INCLUDE_PATH=/usr/include/ta-lib     TA_LIBRARY_PATH=/usr/lib     CFLAGS=-Wno-error=incompatible-pointer-types -Wno-error=discarded-qualifiers
+ENV TA_INCLUDE_PATH=/usr/include/ta-lib     TA_LIBRARY_PATH=/usr/lib     CFLAGS="-Wno-error=incompatible-pointer-types -Wno-error=discarded-qualifiers"
 RUN pip install --no-cache-dir --no-binary :all: --no-build-isolation TA-Lib==0.4.26
+RUN grep -viE "^[[:space:]]*ta-lib[[:space:]]*==" requirements.txt > requirements.notalib   && pip install --no-cache-dir -r requirements.notalib
 
-RUN grep -viE ^[[:space:]]*ta-lib[[:space:]]*== /app/requirements.txt > /tmp/requirements.notalib   && pip install --no-cache-dir -r /tmp/requirements.notalib
 
-COPY . /app/backend
+# ---- Final Stage ----
+FROM python:3.11-slim
 
-WORKDIR /app/backend
+# Create a non-root user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Copy TA-Lib runtime library from builder
+COPY --from=builder /usr/lib/libta_lib.so.0 /usr/lib/libta_lib.so.0
+RUN ldconfig
+
+# Copy installed python packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages/ /usr/local/lib/python3.11/site-packages/
+
+# Set working directory and copy application code
+WORKDIR /app
+COPY . .
+
+# Set user and environment
+USER appuser
 ENV PYTHONPATH=/app
 
 EXPOSE 8080
-CMD ["uvicorn", "backend.api_gateway.app:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "api_gateway.app:app", "--host", "0.0.0.0", "--port", "8080"]

@@ -1,11 +1,10 @@
 version: 1
 pairs:
   BTCUSDT:
-    venues: ["binance","bybit","kraken"]
+    venues: ["binance","bybit","kraken","coinbase"]
   ETHUSDT:
-    venues: ["binance","bybit","kraken"]
+    venues: ["binance","bybit","kraken","coinbase"]
   SOLUSDT:
     venues: ["binance","bybit"]
   DOGEUSDT:
     venues: ["binance","bybit"]
-

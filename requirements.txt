@@ -11,6 +11,15 @@ qdrant-client==1.9.0
 typer==0.12.3
 redis==5.0.7
 
+# Exchange Libraries
+requests
+python-dotenv
+pybit
+coinbase-advanced-py
+binance-connector
+websocket-client
+websockets<14
+
 # OpenAI Integration
 openai==1.45.0
 tiktoken==0.7.0
@@ -18,6 +27,7 @@ tiktoken==0.7.0
 # Technical Analysis & Strategy Development
 ta-lib==0.4.26
 pandas==2.2.2
+cryptography>=41.0.0
 numpy==1.26.4
 scipy==1.13.1
 

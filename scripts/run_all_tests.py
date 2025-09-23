@@ -111,6 +111,11 @@ def main():
             'command': ['python3', '../tests/integration/exchanges/test_bybit_endpoints.py'],
             'description': 'Bybit API endpoint tests'
         },
+        {
+            'name': 'Coinbase Endpoints',
+            'command': ['python3', '../tests/integration/exchanges/test_coinbase_endpoints.py'],
+            'description': 'Coinbase API endpoint tests'
+        },
 
         # Adapter tests (using direct execution)
         {

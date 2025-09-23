@@ -19,6 +19,11 @@ services:
       - mongo
       - qdrant
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: '512M'
 
   redis:
     image: redis:7-alpine
@@ -37,6 +42,11 @@ services:
       - MONGO_INITDB_DATABASE=wowcapital
     command: ["mongod", "--auth", "--bind_ip_all"]
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '1G'
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -46,6 +56,11 @@ services:
     environment:
       - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '1G'
 
   prometheus:
     image: prom/prometheus:latest
@@ -78,7 +93,7 @@ services:
   ai-gateway:
     image: wowcapital-api:latest
     container_name: wowcapital-ai
-    command: ["uvicorn", "backend.ai_gateway.app:app", "--host", "0.0.0.0", "--port", "8080"]
+    command: ["uvicorn", "ai_gateway.app:app", "--host", "0.0.0.0", "--port", "8080"]
     env_file:
       - ../.env
     environment:
@@ -91,6 +106,11 @@ services:
     depends_on:
       - redis
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: '512M'
 
 volumes:
   mongo_data:

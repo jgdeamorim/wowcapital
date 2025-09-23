@@ -11,6 +11,7 @@ ENV/
 
 # Logs and caches
 logs/
+backend/var/
 *.log
 .pytest_cache/
 coverage/

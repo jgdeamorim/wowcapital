@@ -11,12 +11,7 @@ services:
     environment:
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
-    command: |
-      sh -c "
-        echo '🚀 WOW Capital - Teste de Integração Prioridade 1' &&
-        echo '=============================================' &&
-        python3 tests/integration_test_priority_1.py
-      "
+    command: sh -c "python3 scripts/run_all_tests.py"
 
   # Serviço alternativo para teste simples (sem dependências externas)
   simple-test:

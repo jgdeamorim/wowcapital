@@ -1,0 +1,173 @@
+# Exchange service availability and typical latencies by country
+# Data source: WOW Capital operational research (2024-09)
+
+paises:
+  franca:
+    services:
+      coinbase: "Spot, derivatives, staking, wallet, margin"
+      binance: "Spot, derivatives, futures, P2P, earn, card"
+      kraken: "Spot, margin, futures, staking, OTC"
+      bybit: "Spot, derivatives, futures, staking, card"
+      okx: "Spot, derivatives, DeFi, NFTs, staking"
+      paxos: "Stablecoins (USDP, PAXG), transfers via partners"
+    latency_ms:
+      coinbase: "20-80"
+      binance: "150-230"
+      kraken: "15-25"
+      bybit: "50-200"
+      okx: "150-230"
+      paxos: "70-80"
+    markets:
+      coinbase: "250+ pares (BTC/EUR, ETH/EUR, altcoins)"
+      binance: "800+ pares (sem USDT; MiCA-compliant USDC/EUR)"
+      kraken: "200+ pares (BTC/EUR, ETH/EUR)"
+      bybit: "Restrito; sem acesso"
+      okx: "270+ criptos, 60+ pares EUR (BTC/EUR, ETH/EUR)"
+      paxos: "USDP/EUR, PAXG/EUR via parceiros"
+
+  alemanha:
+    services:
+      coinbase: "Spot, derivatives, staking, wallet, margin"
+      binance: "Spot, derivatives, futures, P2P, earn, card"
+      kraken: "Spot, margin, futures, staking, OTC"
+      bybit: "Spot, derivatives, futures, staking, card"
+      okx: "Spot, derivatives, DeFi, NFTs, staking"
+      paxos: "Stablecoins (USDP, PAXG), transfers via partners"
+    latency_ms:
+      coinbase: "15-90"
+      binance: "150-230"
+      kraken: "10-20"
+      bybit: "20-200"
+      okx: "150-230"
+      paxos: "80-90"
+    markets:
+      coinbase: "250+ pares + altcoins expandidos (RPL, REZ)"
+      binance: "800+ pares (sem USDT; USDC/EUR)"
+      kraken: "200+ pares (BTC/EUR, ETH/EUR)"
+      bybit: "300+ pares (BTC/USD, ETH/USDT)"
+      okx: "270+ criptos, 60+ pares EUR"
+      paxos: "USDP/EUR, PYUSD/EUR"
+
+  espanha:
+    services:
+      coinbase: "Spot, derivatives, staking, wallet, margin"
+      binance: "Spot, derivatives, futures, P2P, earn, card"
+      kraken: "Spot, margin, futures, staking, OTC"
+      bybit: "Spot, derivatives, futures, staking, card"
+      okx: "Spot, derivatives, DeFi, NFTs, staking"
+      paxos: "Stablecoins (USDP, PAXG), transfers via partners"
+    latency_ms:
+      coinbase: "20-90"
+      binance: "150-230"
+      kraken: "20-30"
+      bybit: "50-200"
+      okx: "150-230"
+      paxos: "80-90"
+    markets:
+      coinbase: "250+ pares (BTC/EUR, ETH/EUR)"
+      binance: "800+ pares (USDC/BRL, sem USDT)"
+      kraken: "200+ pares (BTC/EUR, ETH/EUR)"
+      bybit: "300+ pares (BTC/USD, ETH/USDT)"
+      okx: "270+ criptos, 60+ pares EUR"
+      paxos: "USDP/EUR, PAXG/EUR"
+
+  italia:
+    services:
+      coinbase: "Spot, derivatives, staking, wallet, margin"
+      binance: "Spot, derivatives, futures, P2P, earn, card"
+      kraken: "Spot, margin, futures, staking, OTC"
+      bybit: "Spot, derivatives, futures, staking, card"
+      okx: "Spot, derivatives, DeFi, NFTs, staking"
+      paxos: "Stablecoins (USDP, PAXG), transfers via partners"
+    latency_ms:
+      coinbase: "20-90"
+      binance: "150-230"
+      kraken: "20-40"
+      bybit: "50-200"
+      okx: "150-230"
+      paxos: "90"
+    markets:
+      coinbase: "250+ pares (BTC/EUR, ETH/EUR)"
+      binance: "800+ pares (sem USDT; USDC/EUR)"
+      kraken: "200+ pares (BTC/EUR, ETH/EUR)"
+      bybit: "300+ pares (BTC/USD, ETH/USDT)"
+      okx: "270+ criptos, 60+ pares EUR"
+      paxos: "USDP/EUR, PYUSD/EUR"
+
+  brasil:
+    services:
+      coinbase: "Spot, Pix, staking, suporte"
+      binance: "Spot, P2P, Earn, Pix; sem futures"
+      kraken: "Spot, staking, margin, Pix to USD, suporte"
+      bybit: "Spot, derivatives, card, Pix, staking"
+      okx: "Spot, staking, Web3, DeFi, suporte"
+      paxos: "Stablecoins via partners (Nubank, PicPay)"
+    latency_ms:
+      coinbase: "110-200"
+      binance: "300-400"
+      kraken: "190"
+      bybit: "250-350"
+      okx: "300-400"
+      paxos: "110"
+    markets:
+      coinbase: "250+ pares (BTC/BRL, ETH/BRL)"
+      binance: "800+ pares (USDC/BRL, BTC/BRL)"
+      kraken: "200+ pares (BTC/USD via Pix)"
+      bybit: "300+ pares (BRZ/USD, BTC/USDT)"
+      okx: "270+ pares (BTC/BRL, ETH/BRL)"
+      paxos: "USDP/BRL, PAXG/BRL via parceiros"
+    regulation:
+      coinbase:
+        spot: true
+        staking: true
+        pix: true
+        derivatives: false
+        nft: true
+        fiat_onramp: true
+        alerts:
+          - "Derivativos e produtos alavancados não são oferecidos para residentes no Brasil."
+        notes: "Spot, carteira, Pix e staking confirmados; marketplace NFT ativo; suporte 24/7 em PT-BR."
+      binance:
+        spot: true
+        staking: true
+        pix: true
+        derivatives: false
+        p2p: true
+        alerts:
+          - "Operações de futures/margin bloqueadas pela CVM para IPs brasileiros."
+        notes: "Spot/P2P/Pay e staking liberados; sem futures. Licença de broker-dealer obtida via Sim; conformidade reforçada."
+      kraken:
+        spot: true
+        staking: true
+        pix: true
+        derivatives: false
+        margin: true
+        alerts:
+          - "Futures não liberados para clientes brasileiros; apenas spot/margem autorizados."
+        notes: "Spot, staking e margem (limitada) confirmados; plataforma em PT-BR com suporte 24/7."
+      bybit:
+        spot: true
+        staking: true
+        derivatives: false
+        card: true
+        pix: true
+        alerts:
+          - "Derivativos suspensos pela CVM; habilitar apenas spot/Bybit Pay para IPs brasileiros."
+        notes: "Spot, staking, Bybit Pay e Pix operacionais; cartão físico/virtual disponível."
+      okx:
+        spot: true
+        staking: true
+        derivatives: false
+        pix: true
+        web3: true
+        alerts:
+          - "Operações derivativas indisponíveis; somente spot/staking/Web3."
+        notes: "Spot, staking, Web3 wallet/DeFi com suporte local. Depósitos BRL via Pix."
+      paxos:
+        spot: false
+        staking: false
+        pix: false
+        derivatives: false
+        alerts:
+          - "Oferta B2B (Nubank/PicPay); não há trading direto para pessoa física."
+        notes: "Stablecoins USDP/PAXG via parceiros locais."

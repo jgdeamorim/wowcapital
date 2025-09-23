@@ -10,12 +10,24 @@ Data: 2024-09-16
 import os
 import sys
 import argparse
+import asyncio
 import signal
 from pathlib import Path
 
 # Add backend to Python path
 backend_path = Path(__file__).parent
 sys.path.insert(0, str(backend_path))
+
+from common.exchange_capabilities import sync_runtime_policy
+from common.runtime_config import RuntimeConfig
+
+
+def ensure_exchange_policy_sync() -> None:
+    country = os.getenv("SYSTEM_COUNTRY", "br")
+    try:
+        asyncio.run(sync_runtime_policy(RuntimeConfig(), country))
+    except Exception as exc:  # pragma: no cover - defensive logging
+        print(f"⚠️ Unable to sync exchange policy for country '{country}': {exc}")
 
 def check_dependencies():
     """Verifica se todas as dependências estão disponíveis"""
@@ -36,6 +48,7 @@ def check_dependencies():
 def launch_basic_tui():
     """Lança a TUI básica"""
     print("🚀 Launching Basic TUI...")
+    ensure_exchange_policy_sync()
     from tui.main import MainTUI
 
     app = MainTUI()
@@ -44,6 +57,7 @@ def launch_basic_tui():
 def launch_advanced_tui():
     """Lança a TUI avançada com múltiplas telas"""
     print("🚀 Launching Advanced TUI...")
+    ensure_exchange_policy_sync()
 
     from textual.app import App
     from tui.layouts.advanced import TradingScreen, AnalyticsScreen
@@ -107,6 +121,7 @@ Special:
 def launch_live_trading_tui():
     """Lança a TUI de live trading"""
     print("🚀 Launching Live Trading TUI...")
+    ensure_exchange_policy_sync()
 
     from textual.app import App
     from tui.panels.live_trading import LiveTradingContainer

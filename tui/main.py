@@ -108,15 +108,15 @@ class RiskPanel(Static):
     def compose(self) -> ComposeResult:
         yield Static("⚠️  RISK", id="risk-title")
         yield Static("""
-[bold]Limits:[/bold]
-Max Drawdown: 3.8%
-Position Size: 2.5%
-Leverage: 25x
+[bold]Limits (Spot Shadow):[/bold]
+Max Drawdown: 4.0%
+Position Size: 8.0%
+Leverage: 1x (Spot)
 
 [bold]Current:[/bold]
-Drawdown: 1.2%
-Exposure: $2,500
-Risk Score: [green]LOW[/green]
+Drawdown: 0.6%
+Exposure: $1,450
+Shadow Risk Score: [green]LOW[/green]
         """.strip(), id="risk-metrics")
 
 
@@ -126,10 +126,11 @@ class ExchangesPanel(Static):
     def compose(self) -> ComposeResult:
         yield Static("🏦 EXCHANGES", id="exchanges-title")
         yield Static("""
-[green]✅ Binance[/green] - 15ms
-[green]✅ Bybit[/green] - 23ms
-[yellow]⚠️  OKX[/yellow] - 145ms
-[red]❌ Coinbase[/red] - Timeout
+[green]✅ Kraken Spot (Shadow Real)[/green] - 18ms
+[green]✅ Coinbase Spot (Shadow Real)[/green] - 22ms
+[yellow]⚠️  Binance Spot[/yellow] - Standby
+[yellow]⚠️  Bybit Spot[/yellow] - Preparing
+[red]❌ Futures Desk[/red] - Disabled
         """.strip(), id="exchanges-status")
 
 

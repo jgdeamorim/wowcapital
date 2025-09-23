@@ -19,6 +19,7 @@ from typing import Dict, Any, Optional
 import json
 import logging
 from urllib.parse import urlencode
+import argparse
 
 # Add backend to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
@@ -37,8 +38,9 @@ class BybitAPITester:
             raise ValueError("Credenciais Bybit não disponíveis")
 
         # Bybit API endpoints
-        if self.credentials.bybit.environment == 'testnet':
-            self.base_url = "https://api-testnet.bybit.com"
+        env = (self.credentials.bybit.environment or '').lower()
+        if env in ('testnet', 'sandbox', 'demo'):
+            self.base_url = "https://api-demo.bybit.com"
         else:
             self.base_url = "https://api.bybit.com"
 
@@ -47,15 +49,24 @@ class BybitAPITester:
 
         self.logger = logging.getLogger(__name__)
 
-    def _generate_signature(self, timestamp: str, params: str) -> str:
-        """Gera assinatura para autenticação Bybit"""
+    def _generate_headers(self, payload: str = "", recv_window: str = "5000") -> Dict[str, str]:
+        """Monta headers assinados para Bybit V5"""
 
-        param_str = f"{timestamp}{self.api_key}{params}"
-        return hmac.new(
-            bytes(self.api_secret, "utf-8"),
-            param_str.encode("utf-8"),
+        timestamp = str(int(time.time() * 1000))
+        pre_sign = f"{timestamp}{self.api_key}{recv_window}{payload}"
+        signature = hmac.new(
+            self.api_secret.encode("utf-8"),
+            pre_sign.encode("utf-8"),
             hashlib.sha256
         ).hexdigest()
+
+        return {
+            'X-BAPI-API-KEY': self.api_key,
+            'X-BAPI-SIGN': signature,
+            'X-BAPI-TIMESTAMP': timestamp,
+            'X-BAPI-RECV-WINDOW': recv_window,
+            'Content-Type': 'application/json'
+        }
 
     def _make_public_request(self, endpoint: str, params: Optional[Dict] = None) -> Dict[str, Any]:
         """Faz requisição pública para Bybit"""
@@ -76,32 +87,26 @@ class BybitAPITester:
         """Faz requisição privada para Bybit"""
 
         params = params or {}
-        timestamp = str(int(time.time() * 1000))
+        recv_window = "5000"
 
-        # Prepare parameters
-        if method == "GET":
-            param_str = urlencode(sorted(params.items()))
+        if method.upper() == "GET":
+            query_str = urlencode(sorted(params.items())) if params else ""
+            headers = self._generate_headers(query_str, recv_window)
         else:
-            param_str = json.dumps(params) if params else ""
+            body_json = json.dumps(params, separators=(",", ":")) if params else "{}"
+            headers = self._generate_headers(body_json, recv_window)
 
-        # Generate signature
-        signature = self._generate_signature(timestamp, param_str)
-
-        headers = {
-            'X-BAPI-API-KEY': self.api_key,
-            'X-BAPI-SIGN': signature,
-            'X-BAPI-SIGN-TYPE': '2',
-            'X-BAPI-TIMESTAMP': timestamp,
-            'Content-Type': 'application/json'
-        }
+        if 'X-BAPI-SIGN-TYPE' not in headers:
+            headers['X-BAPI-SIGN-TYPE'] = '2'
 
         url = f"{self.base_url}{endpoint}"
 
         try:
-            if method == "GET":
+            if method.upper() == "GET":
                 response = requests.get(url, params=params, headers=headers, timeout=10)
             else:
-                response = requests.post(url, json=params, headers=headers, timeout=10)
+                body_json = json.dumps(params, separators=(",", ":")) if params else "{}"
+                response = requests.post(url, data=body_json, headers=headers, timeout=10)
 
             response.raise_for_status()
             return response.json()
@@ -410,12 +415,16 @@ def main():
 
     logging.basicConfig(level=logging.INFO)
 
+    parser = argparse.ArgumentParser(description="Bybit endpoint integration test")
+    parser.add_argument("--env-file", dest="env_file", help="Arquivo .env com credenciais demo", default=None)
+    args = parser.parse_args()
+
     print("🏦 WOW Capital - Bybit API Test")
     print("=" * 50)
 
     try:
         # Load credentials
-        cred_manager = CredentialsManager()
+        cred_manager = CredentialsManager(env_file=args.env_file)
         credentials = cred_manager.load_credentials()
 
         if not credentials.bybit:

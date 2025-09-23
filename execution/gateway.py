@@ -9,6 +9,10 @@ from backend.exchanges.base import ExchangeAdapter
 from backend.exchanges.binance import BinanceAdapter
 from backend.exchanges.bybit import BybitAdapter
 from backend.exchanges.kraken import KrakenAdapter
+try:  # Coinbase pode não existir em builds antigos
+    from backend.exchanges.coinbase import CoinbaseAdapter  # type: ignore
+except ImportError:  # pragma: no cover
+    from exchanges.coinbase import CoinbaseAdapter  # type: ignore
 from backend.audit.worm import AsyncWormLog
 from backend.tca.calculator import estimate_costs_bps
 from backend.common.config import load_yaml
@@ -36,7 +40,7 @@ class OrderRouter:
         tos = load_policies().get("exchange_tos", {})
         self._accounts = Accounts()
         binance_mode = os.getenv("BINANCE_MODE", "spot").lower()
-        enabled = os.getenv("EXCHANGES_ENABLED", "binance,bybit,kraken")
+        enabled = os.getenv("EXCHANGES_ENABLED", "binance,bybit,kraken,coinbase")
         enabled_set = {e.strip().lower() for e in enabled.split(",") if e.strip()}
         adapters: Dict[str, ExchangeAdapter] = {}
         if "binance" in enabled_set:
@@ -45,8 +49,10 @@ class OrderRouter:
             adapters["bybit"] = BybitAdapter(tos)
         if "kraken" in enabled_set:
             adapters["kraken"] = KrakenAdapter(tos)
+        if "coinbase" in enabled_set:
+            adapters["coinbase"] = CoinbaseAdapter(tos)
         self.adapters = adapters
-        self._account_adapters: Dict[str, Dict[str, ExchangeAdapter]] = {"binance": {}, "bybit": {}, "kraken": {}}
+        self._account_adapters: Dict[str, Dict[str, ExchangeAdapter]] = {"binance": {}, "bybit": {}, "kraken": {}, "coinbase": {}}
         self._worm = AsyncWormLog("backend/var/audit/trading.ndjson")
         self._tos_cfg = tos
         self._binance_mode = binance_mode
@@ -159,6 +165,13 @@ class OrderRouter:
         except Exception:
             pass
         adapter = self._get_adapter(venue, account)
+
+        # Runtime exchange policy (per country/venue)
+        policy = await self._runtime.get_overrides("exchange_policy")
+        venue_policy = {}
+        if isinstance(policy, dict):
+            venue_policy = (policy.get("exchanges") or {}).get(venue, {})
+        regulation = venue_policy.get("regulation") if isinstance(venue_policy, dict) else None
         # Risk pre-trade inputs
         ref_mid, spread_bps = await self._fetch_mid_and_spread_bps(venue, req.symbol)
         # (defer adjust until after potential size multiplier)
@@ -175,6 +188,26 @@ class OrderRouter:
                 is_perp = True
         except Exception:
             is_perp = False
+
+        if regulation and isinstance(regulation, dict):
+            derivatives_allowed = regulation.get("derivatives", True)
+            spot_allowed = regulation.get("spot", True)
+            if not spot_allowed and not is_perp:
+                return OrderAck(
+                    client_id=req.client_id,
+                    broker_order_id=None,
+                    accepted=False,
+                    message="SPOT_BLOCKED_BY_POLICY",
+                    ts_ns=int(time.time() * 1e9),
+                )
+            if not derivatives_allowed and is_perp:
+                return OrderAck(
+                    client_id=req.client_id,
+                    broker_order_id=None,
+                    accepted=False,
+                    message="DERIVATIVE_BLOCKED_BY_POLICY",
+                    ts_ns=int(time.time() * 1e9),
+                )
         funding_bps = await self._fetch_funding_bps(venue, req.symbol, adapter) if is_perp else 0.0
         # Resolve plugin id for runtime overrides (via intent map)
         plugin_id = None
