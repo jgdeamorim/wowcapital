@@ -39,3 +39,6 @@ secrets/
 
 # AI assistant configuration
 .claude/
+
+# SSH keys
+ssh/
